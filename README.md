@@ -17,3 +17,11 @@ Requires Arduino UNO WiFi with TTL to RS232 Serial port card on TX/RX pins.
   * AT LOGOUT to cancel connection
   * AT DROP to drop WiFi connection
   * AT LIST to list available access points
+
+# Telnet servers to try
+
+
+* towel.blinkenlights.nl
+* FreeChess.org
+
+And more at http://mewbies.com/acute_terminal_fun_telnet_public_servers_watch_star_wars_play_games_etc.htm
