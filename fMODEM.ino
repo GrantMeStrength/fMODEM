@@ -9,6 +9,7 @@
   Configure WiFi:
   AT ssid=Your WiFI Name e.g. AT ssid=MYHOTSPOT
   AT password=Your Wifi password e.g. AT passowrd=SecretPW
+  AT password=OPEN is a special case for networks with no password
   AT SAVE
 
   Connect to WiFi:
@@ -17,6 +18,8 @@
 
   Connect to server:
   AT TELNET=telnet.server.address e.g. AT TELNET=towel.blinkenlights.nl
+  AT TELNET=telnet.server.address,port e.g. AT TELNET=towel.blinkenlights.nl,23
+
 
   Other commands
   AT LOGOUT to cancel connection
@@ -125,7 +128,7 @@ void setup() {
   SerialPort->println( "##       ##     ## ##     ## ##     ## ##       ##     ## ");
   SerialPort->println( "##       ##     ##  #######  ########  ######## ##     ## ");
   SerialPort->println( "##                                                    ");
-  SerialPort->println( "   fMODEM v.03  July 2019");
+  SerialPort->println( "   fMODEM v0.4  July 2019");
   SerialPort->println("");
 
   digitalWrite(LED_POWER, HIGH);
@@ -331,28 +334,30 @@ void AT(const String& message) {
     AT_getTime();
   }
 
-if (strncasecmp(buffer, "AT HELP", 7) == 0)
-      {
-        SerialPort->println("");
-        SerialPort->println("Welcome to fMODEM");
-        SerialPort->println("");
-        SerialPort->println("Configure WiFi:");
-        SerialPort->println("AT ssid=Your WiFI Name e.g. AT ssid=MYHOTSPOT");
-        SerialPort->println("AT password=Your Wifi password e.g. AT passowrd=SecretPW");
-        SerialPort->println("AT SAVE ");
-        SerialPort->println("");
-        SerialPort->println("Connect to WiFi:");
-        SerialPort->println("AT WIFI");
-        SerialPort->println("(Once you have done an AT SAVE it will store details in EEPROM and use them next power up)");
-        SerialPort->println("");
-        SerialPort->println("Connect to server:");
-        SerialPort->println("AT TELNET=telnet.server.address e.g. AT TELNET=towel.blinkenlights.nl");
-        SerialPort->println("");
-        SerialPort->println("Other commands");
-        SerialPort->println("AT LOGOUT to cancel connection");
-        SerialPort->println("AT DROP to drop WiFi connection");
-        SerialPort->println("AT LIST to list available access points");
-      }
+  if (strncasecmp(buffer, "AT HELP", 7) == 0)
+  {
+    SerialPort->println("");
+    SerialPort->println("Welcome to fMODEM");
+    SerialPort->println("");
+    SerialPort->println("Configure WiFi:");
+    SerialPort->println("AT ssid=Your WiFI Name e.g. AT ssid=MYHOTSPOT");
+    SerialPort->println("AT password=Your Wifi password e.g. AT passowrd=SecretPW");
+    SerialPort->println("AT password=OPEN is a special case for networks with no password");
+    SerialPort->println("AT SAVE ");
+    SerialPort->println("");
+    SerialPort->println("Connect to WiFi:");
+    SerialPort->println("AT WIFI");
+    SerialPort->println("(Once you have done an AT SAVE it will store details in EEPROM and use them next power up)");
+    SerialPort->println("");
+    SerialPort->println("Connect to server:");
+    SerialPort->println("AT TELNET=telnet.server.address e.g. AT TELNET=towel.blinkenlights.nl");
+    SerialPort->println("AT TELNET=telnet.server.address,port e.g. AT TELNET=towel.blinkenlights.nl,port");
+    SerialPort->println("");
+    SerialPort->println("Other commands");
+    SerialPort->println("AT LOGOUT to cancel connection");
+    SerialPort->println("AT DROP to drop WiFi connection");
+    SerialPort->println("AT LIST to list available access points");
+  }
 
 
   if ((strncasecmp(option, "AT WIFI", 7) == 0) || (strncasecmp(option, "AT BRIDGE", 9) == 0))
@@ -453,9 +458,10 @@ void ConnectToWifi()
 #endif
     // Connect to WPA/WPA2 network:
 
-    // Make char array of ssid and password as short as possible, as i think this is the cause of a connecting bug
-    // that stops WiFi.begin from working with a char array of fixed size.
-    
+    // Make char array of ssid and password as short as possible, as I think this is the cause of a bug
+    // that stops WiFi.begin from working with a char array of fixed size. Tobe safe, this icky code is also
+    // used when reading settings stored in EEPROM.
+
     String s_ssid = String(ssid);
     int l_ssid = s_ssid.length() + 1;
     char c_ssid[l_ssid];
@@ -466,7 +472,14 @@ void ConnectToWifi()
     char c_pass[l_pass];
     s_pass.toCharArray(c_pass, l_pass);
 
-    status = WiFi.begin(c_ssid, c_pass);
+    if (s_pass == "OPEN")
+    {
+      status = WiFi.begin(c_ssid);
+    }
+    else
+    {
+      status = WiFi.begin(c_ssid, c_pass);
+    }
 
     delay(4000);
 
@@ -529,29 +542,44 @@ void ConnectToWifi()
 void AT_Telnet(String server) {
 
   server.toCharArray(buffer, 80);
-  SerialPort->println("\Opening connection to server...");
+  SerialPort->println("Opening connection to server...");
   // if you get a connection, report back via serial:
-  if (client.connect(buffer, 23)) {
-    SerialPort->println("connected to server");
-    // Make a HTTP request:
-    client.println("GET /search?q=arduino HTTP/1.1");
-    client.println("Host: www.google.com");
-    client.println("Connection: close");
-    client.println();
-    connected_to_web = true;
+
+  int comma = server.indexOf(",");
+
+  if ( comma > 0)
+  {
+    String address = server.substring(0, comma);
+    int port = server.substring(comma + 1).toInt();
+    address.toCharArray(buffer, comma + 1);
+
+ 
+    if (client.connect(buffer, port)) {
+      SerialPort->println("Connected to server");
+  
+      connected_to_web = true;
+    }
+
   }
+  else // no port specified, use default for telnet - 23
+  {
+
+    if (client.connect(buffer, 23)) {
+      SerialPort->println("connected to server");
+     
+      connected_to_web = true;
+    }
+  }
+
+
 }
 
 void AT_Login() {
-  SerialPort->println("\Opening connection to server...");
+  SerialPort->println("Opening connection to server...");
   // if you get a connection, report back via serial:
   if (client.connect(server, 464)) {
     SerialPort->println("connected to server");
-    // Make a HTTP request:
-    client.println("GET /search?q=arduino HTTP/1.1");
-    client.println("Host: www.google.com");
-    client.println("Connection: close");
-    client.println();
+   
     connected_to_web = true;
   }
 }
@@ -629,7 +657,7 @@ void AT_getTime() {
   // wait to see if a reply is available
   delay(1000);
   if (Udp.parsePacket()) {
-   
+
     // We've received a packet, read the data from it
     Udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
 
