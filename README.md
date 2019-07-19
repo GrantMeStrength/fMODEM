@@ -1,9 +1,9 @@
 # fMODEM
-This repo contains the source code for an Arduino-based "fake modem" that can connect older RS232 only computers to the internet. It requires Arduino UNO WiFi connected to a TTL to RS232 Serial port card on TX/RX pins.
+This repo contains the source code for an Arduino-based "fake modem" that can connect older RS232-only computers to the internet. It runs on an Arduino UNO WiFi Rev 2 connected to a cheap MAX3232-based TTL-to-RS232 Serial port card on its TX/RX pins.
 
 ![The inside of a fMODEM, showing the Arduino UNO Wifi Rev 2, and a TTL RS232 card](modem1.jpeg)
 
-Using the fMODEM connected to the RS232 port, and running an app such as KERMIT allows vintage computers (or their modern recreations) to experience the horror of the modern internet like the rest of us.
+Using the fMODEM connected to a RS232 port - and running an app such as KERMIT under CP/M - allows vintage computers (or their modern recreations) to experience the horror of the modern internet like the rest of us.
 
 ![The outside of a fMODEM, connected to a Altair-Duino](modem2.jpeg)
 
@@ -33,4 +33,6 @@ And more at http://mewbies.com/acute_terminal_fun_telnet_public_servers_watch_st
 
 # Issues
 
-Currently I've found that the WiFi connection is not working when a DC power supply is connected directly to the Arduino, rather than the USB connection. This could be nothing more than using the wrong spec power supply on my part.
+* Currently I've found that the WiFi connection is not working when a DC power supply is connected directly to the Arduino, rather than the USB connection. This could be nothing more than using the wrong spec power supply on my part.
+
+* After starting work on this project, I found other solutions such as [Bo Zimmerman's](https://github.com/bozimmerman/Zimodem) Zimodem, which is a decidedly more comprehensive solution. As it one runs on the ESP8266/ESP, it can be built on a single circuit board as with [8-Bit Bruno's](https://github.com/8bit-bruno/WiFiModem) WiFiModem, my project really makes sense only if you have an Arduno UNO WiFi Rev2 lying around, or just want to do things in a different way.
