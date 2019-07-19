@@ -7,6 +7,14 @@ Using the fMODEM connected to a RS232 port - and running an app such as KERMIT u
 
 ![The outside of a fMODEM, connected to a Altair-Duino](modem2.jpeg)
 
+# Operation
+
+Once the Arduino is turned on, it communicates over the serial port with the computer and displays a welcome message on whatever terminal program is running. For old time's sake, the project uses "AT" codes - the way in which old Hayes compatible modems were controlled. For example, typing **ATI** will return a status message. 
+
+Typically you would assign the WiFi hotspot details using **AT SSID=** and **AT password=** and save those: **AT SAVE**. You would then either type **AT WIFI** or restart. Once connected to the local WiFi, you would use **AT TELNET=A.SERVER.COM** to start the fun.
+
+Here's the list of commands:
+
 ## Configure WiFi:
   * AT ssid=Your WiFI Name e.g. AT ssid=MYHOTSPOT
   * AT password=Your Wifi password e.g. AT passowrd=SecretPW
@@ -22,6 +30,8 @@ Using the fMODEM connected to a RS232 port - and running an app such as KERMIT u
   * AT LOGOUT to cancel connection
   * AT DROP to drop WiFi connection
   * AT LIST to list available access points
+  * ATI for a status message
+  * AT HELP to see this text
 
 # Telnet servers to try
 
