@@ -39,6 +39,21 @@ Here's the list of commands:
 * FreeChess.org
 * More at http://mewbies.com/acute_terminal_fun_telnet_public_servers_watch_star_wars_play_games_etc.htm
 
+# Building the device
+
+The hardware consists of:
+
+* An Arduino UNO Wifi Rev2
+* A MAX3232 based RS232 to TTL adaptor, e.g. [Anmbest 2PCS MAX3232 3.3V to 5V DB9 Male RS232 Serial](https://www.amazon.com/gp/product/B07LBDZ9WG)
+* Four LEDs
+* Four 330Ohm resisters
+
+Connect the Arduino TX/RX to the RX/TX pins on the RS232/TTL adaptor. Connect the power and GND pins on the adaptor to GND and 5V on the Arduino.
+
+The LEDs connect to pins 4,5,6 and 7 on the Arduino, with a resistor to ground for each of them.
+
+
+
 # Issues
 
 * I've found that the WiFi connection is not working when a DC power supply is connected directly to the Arduino, rather than the USB connection. This could be nothing more than using the wrong spec power supply on my part.
