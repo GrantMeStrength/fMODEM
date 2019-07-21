@@ -21,10 +21,12 @@ Here's the list of commands:
   * AT SAVE
   
 ## Connect to WiFi:
-  * AT WIFI (Once you have done an AT SAVE it will store details in EEPROM and use them next power up)
+  * AT WIFI (Once you have done an AT SAVE it will store details in EEPROM and use them next power up automatically, so you shouldn't need to enter AT WIFI).
 
 ## Connect to server:
   * AT TELNET=telnet.server.address e.g. AT TELNET=towel.blinkenlights.nl
+  * AT TELNET=telnet.server.address,port e.g. AT TELNET=towel.blinkenlights.nl,23
+  
   
 ## Other commands
   * AT LOGOUT to cancel connection
@@ -48,16 +50,16 @@ The hardware consists of:
 * Four LEDs
 * Four 330Ohm resisters
 
-Connect the Arduino TX/RX to the RX/TX pins on the RS232/TTL adaptor. Connect the power and GND pins on the adaptor to GND and 5V on the Arduino.
+Connect the Arduino TX/RX to the TX/RX pins on the RS232/TTL adaptor (TX to TX, RX to RX). Connect the power and GND pins on the adaptor to GND and 5V on the Arduino.
 
-The LEDs connect to pins 4,5,6 and 7 on the Arduino, with a resistor to ground for each of them.
+The LEDs connect to pins 4,5,6 and 7 on the Arduino. I put a resistor in-line with each LED, and connected them all to a common ground.
 
-
+When testing, define the DEBUG lable in the source code, and this will use the USB serial connection - you can open the Serial Monitor and try it out on your desktop PC. Remember to build it without the DEBUG label to use the actual RS232 serial port.
 
 # Issues
 
 * I've found that the WiFi connection is not working when a DC power supply is connected directly to the Arduino, rather than the USB connection. This could be nothing more than using the wrong spec power supply on my part.
 
-* No hardware flow control is even attempted never mind supported. There are, however, four LEDs.
+* No hardware flow control is even attempted never mind supported. There are, however, four LEDs to distract you.
 
 * After starting work on this project, I found other solutions such as [Bo Zimmerman's Zimodem](https://github.com/bozimmerman/Zimodem), which is a decidedly more comprehensive solution. As Bo's modem runs on the ESP8266/ESP, it can be built on a single circuit board - see [8-Bit Bruno's WiFiModem](https://github.com/8bit-bruno/WiFiModem) - and so my project really makes sense only if you have an Arduno UNO WiFi Rev2 lying around, or just want to do things in a different way.
