@@ -309,7 +309,6 @@ void EnterLine()
       clearBuffer();
     }
 
-    //LED_TX_OFF();
   }
 }
 
@@ -577,13 +576,6 @@ void AT_Telnet(String server) {
 
   for (int i = 0; i < server.length(); i++)
     if (server[i] == 13) server[i] = 0;
-
-  if (server.substring(".") == "")
-  {
-    SerialPort->println("Debugging: [" + server + "]");
-    SerialPort->println("Please provide a telnet server e.g. AT TELNET=towel.blinkenlights.nl");
-    return;
-  }
 
 
   server.toCharArray(buffer, 80);
