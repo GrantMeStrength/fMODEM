@@ -1,6 +1,6 @@
 /*
 
-  fMODEM
+  fMODEM v1.41 Sep 2019
 
   A Fake modem for retro-computers.
   Connects to wifi, and passes data over RS232.
@@ -38,8 +38,10 @@
   modified 31 May 2012
   by Tom Igoe
 
+  Note: When compiling you may see a warning related to fuse5. This is apparently a known issue.
 
 */
+
 
 #include <SPI.h>
 #include <WiFiNINA.h>
@@ -75,15 +77,44 @@ byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing pack
 int status = WL_IDLE_STATUS;          // the Wifi radio's status
 char ssid[16];                        // your network SSID (name)
 char pass[16];                        // your network password (use for WPA, or use as key for WEP)
+int keyIndex = 0;
+
 WiFiUDP Udp;
-WiFiClient client;
-IPAddress server(82, 68, 254, 162);  // Default server (a BBS)
+WiFiClient client; //client.connect
+char server[] = "towel.blinkenlights.nl";
 
 // Status
 bool connected_to_web = false;
 bool connected_to_wifi = false;
 
+// LED blink counter
+int TX_COUNT = 0;
+int RX_COUNT = 0;
+int BLINKLIMIT = 20;
 
+void LED_BLINK_MANAGER()
+{
+  if (TX_COUNT != 0)
+  {
+    TX_COUNT++;
+    if (TX_COUNT > BLINKLIMIT)
+    {
+      LED_TX_OFF();
+      TX_COUNT = 0;
+    }
+  }
+
+  if (RX_COUNT != 0)
+  {
+    RX_COUNT++;
+    if (RX_COUNT > BLINKLIMIT)
+    {
+      LED_RX_OFF();
+      RX_COUNT = 0;
+    }
+  }
+
+}
 
 void setup() {
 
@@ -101,8 +132,8 @@ void setup() {
   pinMode(LED_AUX, OUTPUT);
 
   digitalWrite(LED_POWER, HIGH);
-  digitalWrite(LED_TX, HIGH);
-  digitalWrite(LED_RX, HIGH);
+  LED_TX_ON();
+  LED_RX_ON();
   digitalWrite(LED_AUX, HIGH);
 
 
@@ -128,12 +159,10 @@ void setup() {
   SerialPort->println( "##       ##     ## ##     ## ##     ## ##       ##     ## ");
   SerialPort->println( "##       ##     ##  #######  ########  ######## ##     ## ");
   SerialPort->println( "##                                                    ");
-  SerialPort->println( "   fMODEM v0.4  July 2019");
+  SerialPort->println( "   fMODEM v0.41  September 2019");
   SerialPort->println("");
 
   digitalWrite(LED_POWER, HIGH);
-  digitalWrite(LED_TX, LOW);
-  digitalWrite(LED_RX, LOW);
   digitalWrite(LED_AUX, LOW);
 
   SerialPort->println("fMODEM is active. AT HELP for options.");
@@ -165,26 +194,27 @@ void setup() {
 
 void loop() {
 
+  // LED Blink stuff
+  LED_BLINK_MANAGER();
+
   // Process user input
   EnterLine();
 
+  // Display content from server
   if (connected_to_web)
   {
-    while (client.available()) {
-      digitalWrite(LED_RX, HIGH);
-      char c = client.read();
-      SerialPort->write(c);
-    }
-
-    digitalWrite(LED_RX, LOW);
-
     // if the server's disconnected, stop the client:
     if (!client.connected()) {
-      SerialPort->println("disconnecting from server.");
+      SerialPort->println("Disconnecting from server.");
       client.stop();
-
+      client.flush();
       connected_to_web = false;
+    }
 
+    while (client.available()) {
+      LED_RX_ON();
+      char c = client.read();
+      SerialPort->write(c);
     }
   }
 }
@@ -197,13 +227,12 @@ void EnterLine()
   if (SerialPort->available())
   {
 
-    digitalWrite(LED_TX, HIGH);
+    LED_RX_ON();
 
     int inByte = SerialPort->read();
     buffer[buffer_count] = inByte;
     SerialPort->write(inByte);
     bool found_command = false;
-
 
     if (inByte == 8) // User pressed delete
     {
@@ -240,7 +269,6 @@ void EnterLine()
 
       buffer[buffer_count - 1] = 0; // Get rid of the newline character in there
 
-
       // Process general AT commands
       if (strncasecmp(buffer, "AT ", 3) == 0)
       {
@@ -256,7 +284,6 @@ void EnterLine()
         found_command = true;
       }
 
-
       // All commands that have been recognized have been processed.
       if (found_command == true)
       {
@@ -264,24 +291,25 @@ void EnterLine()
         for (int i = 0; i < 80; i++)
           buffer[i] = 0;
 
-        digitalWrite(LED_TX, LOW);
+        //LED_TX_OFF();
         return;
       }
 
       // Take a new line on the terminal, so the user knows they pressed return
-      SerialPort->println("fMODEM HELP");
+      SerialPort->println("");
 
       // Send the string to the internet if connected
 
       if (connected_to_web == true)
       {
         client.write(buffer);
+        LED_TX_ON();
       }
 
       clearBuffer();
     }
 
-    digitalWrite(LED_TX, LOW);
+    //LED_TX_OFF();
   }
 }
 
@@ -295,7 +323,7 @@ void AT(const String& message) {
 
   SerialPort->println("");
 
-  if (strncasecmp(option, "AT LIST", 4) == 0)
+  if (strncasecmp(option, "AT LIST", 7) == 0)
   {
     listNetworks();
   }
@@ -386,7 +414,7 @@ void AT(const String& message) {
   }
 
 
-  if (strncasecmp(option, "AT LOGIN", 6) == 0)
+  if (strncasecmp(option, "AT LOGIN", 8) == 0)
   {
     if (connected_to_wifi)
     {
@@ -421,11 +449,36 @@ void AT(const String& message) {
 
 }
 
+void LED_TX_ON()
+{
+  digitalWrite(LED_TX, HIGH);
+  TX_COUNT = 1;
+}
+
+void LED_TX_OFF()
+{
+  digitalWrite(LED_TX, LOW);
+  TX_COUNT = 0;
+}
+
+void LED_RX_ON()
+{
+  digitalWrite(LED_RX, HIGH);
+  RX_COUNT = 1;
+}
+
+void LED_RX_OFF()
+{
+  digitalWrite(LED_RX, LOW);
+  RX_COUNT = 0;
+}
+
+
 void ConnectToWifi()
 {
 
-  digitalWrite(LED_TX, HIGH);
-  digitalWrite(LED_RX, LOW);
+  LED_TX_ON();
+  LED_RX_ON();
   digitalWrite(LED_AUX, LOW);
 
   int timeout = 0;
@@ -442,46 +495,23 @@ void ConnectToWifi()
     SerialPort->println("Please upgrade the firmware");
   }
 
-  digitalWrite(LED_TX, LOW);
-  digitalWrite(LED_RX, LOW);
   digitalWrite(LED_AUX, LOW);
 
+  SerialPort->print("Attempting to connect to WiFi..");
+
   // attempt to connect to Wifi network:
-  while (status != WL_CONNECTED && timeout < 4) {
-    SerialPort->print("Attempting to connect to WiFi..");
-#ifdef DEBUG
-    SerialPort->print("[");
-    SerialPort->print(ssid);
-    SerialPort->print("][");
-    SerialPort->print(pass);
-    SerialPort->println("]");
-#endif
-    // Connect to WPA/WPA2 network:
+  while (status != WL_CONNECTED && timeout < 2) {
 
-    // Make char array of ssid and password as short as possible, as I think this is the cause of a bug
-    // that stops WiFi.begin from working with a char array of fixed size. Tobe safe, this icky code is also
-    // used when reading settings stored in EEPROM.
 
-    String s_ssid = String(ssid);
-    int l_ssid = s_ssid.length() + 1;
-    char c_ssid[l_ssid];
-    s_ssid.toCharArray(c_ssid, l_ssid);
-
-    String s_pass = String(pass);
-    int l_pass = s_pass.length() + 1;
-    char c_pass[l_pass];
-    s_pass.toCharArray(c_pass, l_pass);
-
-    if (s_pass == "OPEN")
+    if (pass == "OPEN")
     {
-      status = WiFi.begin(c_ssid);
+      status = WiFi.begin(ssid);
     }
     else
     {
-      status = WiFi.begin(c_ssid, c_pass);
+      status = WiFi.begin(ssid, pass);
     }
 
-    delay(4000);
 
     timeout++;
 
@@ -493,45 +523,49 @@ void ConnectToWifi()
 
         if (i == 0)
         {
-          digitalWrite(LED_TX, HIGH);
-          digitalWrite(LED_RX, LOW);
+          LED_TX_OFF();
+          LED_RX_OFF();
           digitalWrite(LED_AUX, LOW);
         }
 
         if (i == 1)
         {
-          digitalWrite(LED_TX, LOW);
-          digitalWrite(LED_RX, LOW);
-          digitalWrite(LED_AUX, HIGH);
+          LED_TX_OFF();
+          LED_RX_ON();
+          digitalWrite(LED_AUX, LOW);
         }
 
         if (i == 2)
         {
-          digitalWrite(LED_TX, LOW);
-          digitalWrite(LED_RX, HIGH);
+          LED_TX_ON();
+          LED_RX_ON();
           digitalWrite(LED_AUX, LOW);
         }
 
-        delay(200);
+        delay(400);
       }
     }
 
   }
 
   digitalWrite(LED_AUX, HIGH);
-  digitalWrite(LED_TX, LOW);
-  digitalWrite(LED_RX, LOW);
+  LED_TX_OFF();
+  LED_RX_OFF();
 
-  if (timeout < 4)
+
+  if (status == WL_CONNECTED)
   {
 
     connected_to_wifi = true;
     // you're connected now, so print out the data:
     SerialPort->println("Connected to the network.");
+    printWifiData();
+    printCurrentNet();
+
   }
   else
   {
-    SerialPort->println("Could not connect :-( . Check SSID and PASSWORD settings.");
+    SerialPort->println("Could not connect. Check SSID and PASSWORD settings.");
     digitalWrite(LED_AUX, LOW);
   }
 
@@ -541,10 +575,21 @@ void ConnectToWifi()
 
 void AT_Telnet(String server) {
 
-  server.toCharArray(buffer, 80);
-  SerialPort->println("Opening connection to server...");
-  // if you get a connection, report back via serial:
+  for (int i = 0; i < server.length(); i++)
+    if (server[i] == 13) server[i] = 0;
 
+  if (server.substring(".") == "")
+  {
+    SerialPort->println("Debugging: [" + server + "]");
+    SerialPort->println("Please provide a telnet server e.g. AT TELNET=towel.blinkenlights.nl");
+    return;
+  }
+
+
+  server.toCharArray(buffer, 80);
+
+
+  // Check for a comma, indicating a port has been specified
   int comma = server.indexOf(",");
 
   if ( comma > 0)
@@ -553,11 +598,14 @@ void AT_Telnet(String server) {
     int port = server.substring(comma + 1).toInt();
     address.toCharArray(buffer, comma + 1);
 
- 
-    if (client.connect(buffer, port)) {
+    if (client.connect(buffer, port))
+    {
       SerialPort->println("Connected to server");
-  
       connected_to_web = true;
+    }
+    else
+    {
+      SerialPort->println("Connection failed (1!)");
     }
 
   }
@@ -565,9 +613,13 @@ void AT_Telnet(String server) {
   {
 
     if (client.connect(buffer, 23)) {
-      SerialPort->println("connected to server");
-     
+      SerialPort->println("connected to server (2)");
       connected_to_web = true;
+    }
+    else
+    {
+      SerialPort->println("Connection failed (2)");
+
     }
   }
 
@@ -579,7 +631,7 @@ void AT_Login() {
   // if you get a connection, report back via serial:
   if (client.connect(server, 464)) {
     SerialPort->println("connected to server");
-   
+
     connected_to_web = true;
   }
 }
@@ -601,8 +653,13 @@ void AT_Logout()
   if (connected_to_web)
   {
     client.stop();
+    client.flush();
     SerialPort->println("Disconnected");
     connected_to_web = false;
+  }
+  else
+  {
+    SerialPort->println("Not currently connected.");
   }
 }
 
@@ -647,6 +704,7 @@ void AT_getTime() {
     SerialPort->println("Must be connected to WiFi first.");
     return;
   }
+
 
   SerialPort->println("Connecting to time server..");
   int numSsid = WiFi.scanNetworks();        // Seems to require some network access first. This works..
@@ -693,6 +751,8 @@ void AT_getTime() {
     SerialPort->println(epoch % 60); // print the second
   }
   Udp.stop();
+
+
 }
 
 // send an NTP request to the time server at the given address
@@ -822,11 +882,13 @@ bool ReadData()
   for (int i = 0; i < 16; i++)
   {
     buf_s[i] = EEPROM.read(i + 1);
+    if (buf_s[i] == 13) buf_s[i] = 0;
   }
 
   for (int i = 0; i < 16; i++)
   {
     buf_p[i] = EEPROM.read(i + 1 + 16);
+    if (buf_p[i] == 13) buf_p[i] = 0;
   }
 
   String str_s = String(buf_s);
@@ -837,7 +899,6 @@ bool ReadData()
 
   str_s.toCharArray(ssid, l_s);
   str_p.toCharArray(pass, l_p);
-
 
   return true;
 
