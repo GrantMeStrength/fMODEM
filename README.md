@@ -58,8 +58,6 @@ When testing, define the DEBUG lable in the source code, and this will use the U
 
 # Issues
 
-* I've found that the WiFi connection is not working when a DC power supply is connected directly to the Arduino, rather than the USB connection. This could be nothing more than using the wrong spec power supply on my part.
-
 * No hardware flow control is even attempted never mind supported. There are, however, four LEDs to distract you.
 
 * After starting work on this project, I found other solutions such as [Bo Zimmerman's Zimodem](https://github.com/bozimmerman/Zimodem), which is a decidedly more comprehensive solution. As Bo's modem runs on the ESP8266/ESP, it can be built on a single circuit board - see [8-Bit Bruno's WiFiModem](https://github.com/8bit-bruno/WiFiModem) - and so my project really makes sense only if you have an Arduno UNO WiFi Rev2 lying around, or just want to do things in a different way.
